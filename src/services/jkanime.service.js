@@ -13,10 +13,20 @@ const HTTP_HEADERS = {
   "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
 };
 
+function getProxyUrl(targetUrl) {
+  const proxy = (process.env.JKANIME_PROXY_URL || process.env.CLOUDFLARE_PROXY_URL || "").trim();
+  if (!proxy) {
+    return targetUrl;
+  }
+  const cleanProxy = proxy.replace(/\/+$/, "");
+  return `${cleanProxy}?url=${encodeURIComponent(targetUrl)}`;
+}
+
 async function fetchHtml(url) {
   try {
     const timeout = Number(process.env.REQUEST_TIMEOUT_MS || 15000);
-    const response = await axios.get(url, {
+    const requestUrl = getProxyUrl(url);
+    const response = await axios.get(requestUrl, {
       timeout,
       headers: HTTP_HEADERS,
       maxRedirects: 5,
@@ -31,8 +41,9 @@ async function fetchHtml(url) {
 async function fetchJson(url, options = {}) {
   try {
     const timeout = Number(process.env.REQUEST_TIMEOUT_MS || 15000);
+    const requestUrl = getProxyUrl(url);
     const response = await axios({
-      url,
+      url: requestUrl,
       timeout,
       maxRedirects: 5,
       validateStatus: (status) => status >= 200 && status < 400,
